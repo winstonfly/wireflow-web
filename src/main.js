@@ -4,7 +4,7 @@ import App from './App.vue'
 import router from './router/index.ts'
 // import { createPinia } from 'pinia' // 1. 引入核心方法
 import './assets/main.css'
-import { useTheme } from './composables/useTheme'
+import { useTheme } from './composables/useTheme.ts'
 
 // 初始化主题（必须）
 useTheme()

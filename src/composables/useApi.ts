@@ -1,5 +1,5 @@
 
-import {inject, onMounted, ref, watch} from 'vue'
+import {inject, onMounted, reactive, ref, watch} from 'vue'
 import type {ApiResponse, PageParams, TableOptions} from '@/types/table';
 
 /**
@@ -58,7 +58,7 @@ export function useTable<T>(
     const rows = ref<T[]>([]) as any;
     const total = ref(0);
 
-    const params = ref<PageParams>({
+    const params = reactive<PageParams>({
         page: 1,
         pageSize: 4,
         search: '',
@@ -85,9 +85,9 @@ export function useTable<T>(
         }
     };
 
-    watch(() => params.value.page, refresh);
+    watch(() => params.page, refresh);
 
-    watch(() => params.value.search, () => {
+    watch(() => params.search, () => {
         params.value.page = 1;
         refresh();
     });

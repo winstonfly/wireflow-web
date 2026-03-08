@@ -20,7 +20,7 @@ export function useTheme() {
  * @param {string} name
  * @returns {string} Tailwind color class
  */
-export const getAvatarColor = (name) => {
+export const getAvatarColor = (name:string) => {
     const colors = [
         'bg-indigo-500',
         'bg-emerald-500',
@@ -45,6 +45,6 @@ export const getAvatarColor = (name) => {
 /**
  * 获取展示用的首字母（处理中英文）
  */
-export const getFirstChar = (name) => {
+export const getFirstChar = (name:string) => {
     return name ? name.charAt(0).toUpperCase() : '?';
 };

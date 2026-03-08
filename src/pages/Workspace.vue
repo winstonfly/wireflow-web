@@ -1,72 +1,18 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import {onMounted} from 'vue'
 import Icon from '../components/icons/Icon.vue'
-import { add, listWs, deleteWs } from "@/api/workspace"
-import { useAction, useTable } from '@/composables/useApi'
-import { useWorkspaceStore } from '@/stores/workspace'
 import SideDrawer from "../components/SideDrawer.vue"
 import Pagination from "../components/Pagination.vue"
-import { getFirstChar, getAvatarColor } from '@/composables/useTheme'
-import { useConfirm } from '@/composables/useConfirm'
+import {useThemeStore} from '@/stores/useTheme'
+import {useWorkspacePageStore} from "@/stores/workspacePage";
 
-const { confirm } = useConfirm()
-const router = useRouter()
-const workspaceStore = useWorkspaceStore()
+const workspacePageStore = useWorkspacePageStore()
+const themeStore = useThemeStore()
 
-// 1. 状态与表单
-const isDrawerOpen = ref(false)
-const drawerType = ref<'view' | 'edit' | 'create'>('view')
-const initialForm = { displayName: '', slug: '', maxNodeCount: 20 }
-const form = ref({ ...initialForm })
-
-// 2. 数据流处理
-const { rows, total, loading, params, refresh } = useTable(listWs, {
-  successMsg: '列表已同步',
-  errorMsg: '数据加载失败',
+onMounted(() => {
+  workspacePageStore.actions.refresh()
 })
 
-// 监听分页
-watch(() => [params.page, params.pageSize], () => refresh(), { deep: true })
-
-// 3. 业务逻辑
-const enterWorkspace = (ws: any) => {
-  workspaceStore.switchWorkspace(ws)
-  router.push(`/ws/${ws.id}/nodes`)
-}
-
-const { loading: isSubmitting, execute: runAdd } = useAction(add, {
-  successMsg: "空间创建成功",
-  onSuccess: () => {
-    isDrawerOpen.value = false
-    form.value = { ...initialForm }
-    refresh()
-  }
-})
-
-const openDrawer = (type: 'view' | 'edit' | 'create') => {
-  drawerType.value = type
-  isDrawerOpen.value = true
-}
-
-const handleDelete = async (ws: any) => {
-  const isConfirmed = await confirm({
-    title: '销毁工作空间？',
-    message: `确认删除 <span class="text-error font-bold">${ws.displayName}</span>？此操作将立即切断该空间下所有节点的逻辑连接。`,
-    confirmText: '确认销毁',
-    type: 'danger'
-  })
-
-  if (isConfirmed) {
-    await deleteWs(ws.id)
-    await refresh()
-  }
-}
-
-const handleCreate = async () => {
-  if (!form.value.displayName) return
-  await runAdd(form.value)
-}
 </script>
 <template>
   <div class="min-h-screen bg-base-200/50 transition-colors duration-300 text-base-content">
@@ -80,16 +26,16 @@ const handleCreate = async () => {
           <div>
             <h1 class="text-2xl font-black tracking-tighter italic uppercase">工作空间</h1>
             <p class="text-xs font-bold opacity-40 uppercase tracking-widest">
-              资源池总数：<span class="text-primary">{{ total || 0 }}</span>
+              资源池总数：<span class="text-primary">{{ workspacePageStore.total || 0 }}</span>
             </p>
           </div>
         </div>
 
         <div class="flex items-center gap-2">
-          <button class="btn btn-ghost bg-base-100 border-base-content/5 rounded-xl hover:bg-base-200" @click="refresh">
-            <Icon name="refresh" :class="['w-4 h-4', loading ? 'animate-spin' : '']" />
+          <button class="btn btn-ghost bg-base-100 border-base-content/5 rounded-xl hover:bg-base-200" @click="workspacePageStore.actions.refresh">
+            <Icon name="refresh" :class="['w-4 h-4', workspacePageStore.loading ? 'animate-spin' : '']" />
           </button>
-          <button @click="openDrawer('create')" class="btn btn-primary rounded-xl px-6 shadow-lg shadow-primary/20">
+          <button @click="workspacePageStore.actions.openDrawer('create')" class="btn btn-primary rounded-xl px-6 shadow-lg shadow-primary/20">
             <Icon name="plus" class="w-4 h-4 mr-2"/>
             新建空间
           </button>
@@ -97,18 +43,18 @@ const handleCreate = async () => {
       </header>
 
       <main>
-        <div v-if="loading && rows.length === 0" class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div v-if="workspacePageStore.loading && workspacePageStore.rows.length === 0" class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6">
           <div v-for="i in 4" :key="i" class="h-64 bg-base-300/50 rounded-3xl animate-pulse"></div>
         </div>
 
-        <div v-if="rows.length > 0" class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6">
-          <div v-for="ws in rows" :key="ws.id"
+        <div v-if="workspacePageStore.rows.length > 0" class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div v-for="ws in workspacePageStore.rows" :key="ws.id"
                class="group bg-base-100 rounded-3xl border border-base-content/5 shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 flex flex-col relative">
 
             <div class="p-5 flex justify-between items-start">
               <div class="flex items-center gap-4 min-w-0">
-                <div :class="['w-10 h-10 flex items-center justify-center rounded-xl text-xs font-black text-white shadow-inner transition-transform group-hover:scale-110', getAvatarColor(ws.displayName)]">
-                  {{ getFirstChar(ws.displayName) }}
+                <div :class="['w-10 h-10 flex items-center justify-center rounded-xl text-xs font-black text-white shadow-inner transition-transform group-hover:scale-110', themeStore.actions.getAvatarColor(ws.displayName)]">
+                  {{ themeStore.actions.getFirstChar(ws.displayName) }}
                 </div>
                 <div class="min-w-0">
                   <h3 class="font-black text-sm truncate group-hover:text-primary transition-colors uppercase italic">{{ ws.displayName }}</h3>
@@ -155,7 +101,7 @@ const handleCreate = async () => {
                 <div class="flex gap-1">
                   <div class="tooltip tooltip-top" data-tip="编辑">
                     <button
-                        @click="openDrawer('edit')"
+                        @click="workspacePageStore.actions.openDrawer('edit')"
                         class="btn btn-ghost btn-xs btn-square text-base-content/50 hover:text-primary hover:bg-primary/10"
                     >
                       <Icon name="edit" class="w-4 h-4"/>
@@ -164,7 +110,7 @@ const handleCreate = async () => {
 
                   <div class="tooltip tooltip-top" data-tip="销毁">
                     <button
-                        @click="handleDelete(ws)"
+                        @click="workspacePageStore.actions.handleDelete(ws)"
                         class="btn btn-ghost btn-xs btn-square text-base-content/50 hover:text-error hover:bg-error/10"
                     >
                       <Icon name="trash" class="w-4 h-4"/>
@@ -172,7 +118,7 @@ const handleCreate = async () => {
                   </div>
                 </div>
 
-                <button @click="enterWorkspace(ws)" class="btn btn-primary btn-xs rounded-lg px-4 font-black italic shadow-md">
+                <button @click="workspacePageStore.actions.enterWorkspace(ws)" class="btn btn-primary btn-xs rounded-lg px-4 font-black italic shadow-md">
                   管理节点
                   <Icon name="arrow-right" class="w-3 h-3 ml-1"/>
                 </button>
@@ -183,40 +129,40 @@ const handleCreate = async () => {
           </div>
 <!--        </div>-->
 
-        <div v-else-if="!loading" class="py-32 text-center">
+        <div v-else-if="!workspacePageStore.loading" class="py-32 text-center">
           <div class="inline-flex p-8 bg-base-300/30 rounded-full mb-6">
             <Icon name="workspace" class="w-16 h-16 opacity-10"/>
           </div>
           <p class="text-sm font-black opacity-30 uppercase tracking-[0.2em]">未发现活跃的工作空间</p>
-          <button @click="openDrawer('create')" class="btn btn-link no-underline text-primary mt-2">立即创建</button>
+          <button @click="workspacePageStore.actions.openDrawer('create')" class="btn btn-link no-underline text-primary mt-2">立即创建</button>
         </div>
       </main>
 
       <footer class="flex flex-col sm:flex-row justify-between items-center pt-8 border-t border-base-content/5 gap-4">
         <div class="text-[10px] font-black uppercase opacity-30 tracking-tighter">
-          共 {{ total }} 个实体，当前显示 {{ rows.length }} 个
+          共 {{ workspacePageStore.total }} 个实体，当前显示 {{ workspacePageStore.rows.length }} 个
         </div>
-        <Pagination v-model:page="params.page" v-model:pageSize="params.pageSize" :total="total" />
+        <Pagination v-model:page="workspacePageStore.params.page" v-model:pageSize="workspacePageStore.params.pageSize" :total="workspacePageStore.total" />
       </footer>
 
-      <SideDrawer v-model="isDrawerOpen" :title="drawerType === 'create' ? '初始化新空间' : '空间详情'">
+      <SideDrawer v-model="workspacePageStore.ui.isDrawerOpen" :title="workspacePageStore.ui.drawerType === 'create' ? '初始化新空间' : '空间详情'">
         <div class="flex flex-col h-full bg-base-100">
           <div class="flex-1 p-8 space-y-8 overflow-y-auto">
             <div class="space-y-3">
               <label class="text-[10px] font-black opacity-40 uppercase tracking-widest px-1">显示名称</label>
-              <input v-model="form.displayName" type="text" placeholder="例如：北京-边缘算力池"
+              <input v-model="workspacePageStore.form.displayName" type="text" placeholder="例如：北京-边缘算力池"
                      class="input input-bordered w-full bg-base-200 border-none focus:ring-2 focus:ring-primary/20 font-bold" />
             </div>
 
             <div class="space-y-3">
               <label class="text-[10px] font-black opacity-40 uppercase tracking-widest px-1">命名空间别名 (K8s Slug)</label>
-              <input v-model="form.slug" type="text" placeholder="wf-namespace-01"
+              <input v-model="workspacePageStore.form.slug" type="text" placeholder="wf-namespace-01"
                      class="input input-bordered w-full bg-base-200 border-none font-mono text-xs focus:ring-2 focus:ring-primary/20" />
             </div>
 
             <div class="space-y-3">
               <label class="text-[10px] font-black opacity-40 uppercase tracking-widest px-1">资源配额</label>
-              <select v-model="form.maxNodeCount" class="select select-bordered w-full bg-base-200 border-none font-bold">
+              <select v-model="workspacePageStore.form.maxNodeCount" class="select select-bordered w-full bg-base-200 border-none font-bold">
                 <option :value="20">标准版 (20 节点)</option>
                 <option :value="50">高级版 (50 节点)</option>
                 <option :value="100">企业版 (100 节点)</option>
@@ -234,9 +180,9 @@ const handleCreate = async () => {
           </div>
 
           <div class="p-8 bg-base-200/50 border-t border-base-content/5">
-            <button @click="handleCreate" :disabled="!form.displayName || isSubmitting"
+            <button @click="workspacePageStore.actions.handleCreate" :disabled="!workspacePageStore.form.displayName || workspacePageStore.ui.isSubmitting"
                     class="btn btn-primary w-full rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">
-              <span v-if="!isSubmitting">配置并发布空间</span>
+              <span v-if="!workspacePageStore.ui.isSubmitting">配置并发布空间</span>
               <span v-else class="loading loading-spinner"></span>
             </button>
           </div>
