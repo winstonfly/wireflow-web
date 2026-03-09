@@ -25,7 +25,7 @@ onMounted(async () => {
   // 只在没有用户信息时才去拉取，避免路由切换重复请求
   if (!userStore.userInfo) {
     try {
-      await userStore.fetchUserInfo()
+      await userStore.actions.fetchUserInfo()
     } catch (err) {
       console.error('获取用户信息失败', err)
       // 这里可以做跳转登录页的处理

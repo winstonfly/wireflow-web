@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import {reactive, ref} from 'vue'
 import { useRouter } from 'vue-router'
 import { useAction } from '@/composables/useApi'
 import { login, User } from '@/api/user';
@@ -9,7 +9,7 @@ const router = useRouter()
 const { loading: isLoading, execute: runLogin } = useAction(login, {
   successMsg: '验证通过，正在同步控制面...',
   errorMsg: '凭证无效，请检查后重试',
-  onSuccess: (data) => {
+  onSuccess: (data:any) => {
     localStorage.setItem("wf_user", data.user || data.email)
     localStorage.setItem("role", data.role)
     localStorage.setItem("wf_token", data.token)
@@ -17,14 +17,14 @@ const { loading: isLoading, execute: runLogin } = useAction(login, {
   }
 });
 
-const form = ref<User>({
+const form = reactive({
   username: '',
   password: '',
-  remember: false
+  remember: '',
 })
 
 const handleLogin = async () => {
-  await runLogin(form.value)
+  await runLogin(form)
 }
 
 const handleSocialLogin = (provider: string) => {

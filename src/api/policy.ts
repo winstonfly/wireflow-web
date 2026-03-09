@@ -2,7 +2,7 @@ import request from '@/api/request';
 
 
 
-export const listPolicy = (data) => request.get('/policies/list', data);
-export const createPolicy = (data) => request.post('/policies/create', data);
-export const updatePolicy = (data) => request.put('/policies/create', data);
-export const deletePolicy = (id) => request.delete(`/policies/${id}`);
+export const listPolicy = (data:any) => request.get('/policies/list', data);
+export const createPolicy = (data:any) => request.post('/policies/create', data);
+export const updatePolicy = (data:any) => request.put('/policies/create', data);
+export const deletePolicy = (id:any) => request.delete(`/policies/${id}`);

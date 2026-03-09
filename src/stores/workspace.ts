@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import router from "@/router";
 
 // 建议定义接口，提升开发时的代码提示
 interface Workspace {
@@ -31,6 +32,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         // 建议：只存必要的 ID 或对象，减少缓存压力
         localStorage.setItem('active_ws', JSON.stringify(ws))
         localStorage.setItem('active_ws_id', ws.id)
+        router.push(`/ws/${ws.id}/nodes`)
     }
 
     // 4. 同步逻辑：监听路由变化（关键！）

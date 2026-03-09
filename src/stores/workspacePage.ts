@@ -89,7 +89,6 @@ export const useWorkspacePageStore = defineStore('workspacePage', () => {
 
         enterWorkspace(ws: any) {
             globalWsStore.switchWorkspace(ws)
-            router.push(`/ws/${ws.id}/nodes`)
         }
     }
 

@@ -68,7 +68,7 @@ export function useTable<T>(
     const refresh = async () => {
         loading.value = true;
         try {
-            const {code, data, msg} = await apiFunc(params.value);
+            const {code, data, msg} = await apiFunc(params);
 
             if (code === 200) {
                 rows.value = data?.list || [];

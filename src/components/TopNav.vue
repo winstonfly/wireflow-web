@@ -1,72 +1,11 @@
 <script setup lang="ts">
-import {computed, inject, ref, watch} from 'vue'
-import {useRoute, useRouter} from 'vue-router'
-import {useTheme} from '../composables/useTheme'
-import {useUserStore} from '@/stores/user'
-import {useTable} from '@/composables/useApi'
-import {listWs} from "@/api/workspace";
-
-import {useWorkspaceStore} from "@/stores/workspace";
-
-const wsStore = useWorkspaceStore()
+import {useNavbarStore} from "@/stores/pages/topNavbar";
+import {useUserStore} from "@/stores/user";
+import {useTheme} from "@/composables/useTheme";
 
 const userStore = useUserStore()
-
-const toast = inject('globalToast')
-const route = useRoute()
-const router = useRouter()
 const {theme, toggleTheme} = useTheme()
-
-// 2. 列表数据流
-const {rows, total, loading, params, refresh} = useTable(listWs, {
-  successMsg: '数据已同步',
-  errorMsg: '无法获取空间列表',
-})
-
-// 响应式数据
-const user = ref({
-  name: '',
-  email: '',
-  userId: '',
-  role: '',
-  avatarUrl: '',
-})
-
-// 当前 Workspace 标识（多租户核心）
-// const currentWorkspace = computed(() => route.params.wsId || 'Default Space')
-
-// 1. 模拟当前选中的 Workspace 数据 (实际应从 Pinia/Vuex 获取)
-// 这里的逻辑：如果当前路由包含 /ws/，则认为在某个空间内
-// ✅ 使用 computed，只要 URL 里的 wsId 变了，这里会自动更新
-const currentWsId = computed(() => route.params.wsId as string)
-
-
-const switchWorkspace = (ws) => {
-  wsStore.switchWorkspace(ws)
-  router.push({name: 'dashboard', params: {wsId: ws.id}}) // 驱动视图
-}
-
-const handleLogout = () => {
-  localStorage.removeItem('wf_user')
-  localStorage.removeItem('wf_token')
-  router.push('/login')
-}
-
-
-// 3. 核心同步逻辑：当 useTable 的 rows 更新时，同步给 Store
-watch(rows, (newRows) => {
-  if (newRows) {
-    wsStore.setRows(newRows) // 将列表存入 Store
-  }
-}, { immediate: true })
-
-// 4. 辅助：如果 Store 里的当前空间对象丢失（比如刷新页面），根据 URL 找回
-watch(() => route.params.wsId, (newId) => {
-  if (newId && rows.value.length > 0) {
-    const active = rows.value.find(item => item.id === newId)
-    if (active) wsStore.switchWorkspace(active)
-  }
-}, { immediate: true })
+const navStore = useNavbarStore()
 
 </script>
 <template>
@@ -95,10 +34,10 @@ watch(() => route.params.wsId, (newId) => {
             <div tabindex="0" role="button"
                  class="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-base-content/5 transition-all cursor-pointer group">
               <div class="w-6 h-6 rounded bg-indigo-500 flex items-center justify-center text-[10px] font-bold text-white shadow-sm uppercase">
-                {{ wsStore.currentWorkspace?.displayName.substring(0, 1) }}
+                {{ navStore.currentWorkspace?.displayName.substring(0, 1) }}
               </div>
               <span class="text-[12px] font-bold text-base-content/70 max-w-[100px] truncate">
-                {{ wsStore.currentWorkspace?.displayName }}
+                {{ navStore.currentWorkspace?.displayName }}
               </span>
               <svg class="w-3 h-3 opacity-30 group-hover:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="3">
@@ -109,8 +48,8 @@ watch(() => route.params.wsId, (newId) => {
             <ul tabindex="0"
                 class="dropdown-content menu bg-base-100 rounded-2xl z-50 mt-2 w-56 p-2 shadow-2xl border border-base-content/5 animate-fade-in">
               <li class="menu-title px-3 py-2 text-[9px] uppercase tracking-widest opacity-40">切换工作空间</li>
-              <li v-for="ws in rows" :key="ws.id">
-                <a @click="switchWorkspace(ws)" :class="{ 'active': currentWsId === ws.id }"
+              <li v-for="ws in navStore.rows" :key="ws.id">
+                <a @click="navStore.actions.switchWorkspace(ws)" :class="{ 'active': navStore.currentWsId === ws.id }"
                    class="flex items-center gap-3 p-3 rounded-xl hover:bg-base-content/5">
                   <div class="w-8 h-8 rounded-lg bg-base-200 flex items-center justify-center font-bold text-xs">
                     {{ ws.displayName[0] }}
@@ -192,7 +131,7 @@ watch(() => route.params.wsId, (newId) => {
                   </span>
                 </div>
                 <p class="text-xs font-bold text-base-content truncate">{{ userStore.userInfo?.username }}</p>
-                <p class="text-[10px] text-base-content/40 truncate mt-0.5">{{ user.email }}</p>
+                <p class="text-[10px] text-base-content/40 truncate mt-0.5">{{ userStore.userInfo?.email }}</p>
               </div>
 
               <li><router-link to="/profile" class="rounded-lg py-2 text-[11px] font-bold hover:bg-base-content/5">个人中心</router-link></li>
@@ -201,7 +140,7 @@ watch(() => route.params.wsId, (newId) => {
               <div class="divider my-1 opacity-5"></div>
 
               <li>
-                <button @click="handleLogout"
+                <button @click="navStore.actions.handleLogout"
                         class="text-error hover:bg-error/10 rounded-lg py-2 text-[11px] font-black uppercase tracking-widest">
                   安全退出
                 </button>
@@ -213,42 +152,3 @@ watch(() => route.params.wsId, (newId) => {
     </div>
   </header>
 </template>
-
-<!--<style scoped>-->
-<!--.animate-fade-in {-->
-<!--  animation: fadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;-->
-<!--}-->
-
-<!--@keyframes fadeIn {-->
-<!--  from {-->
-<!--    opacity: 0;-->
-<!--    transform: translateY(8px) scale(0.98);-->
-<!--  }-->
-<!--  to {-->
-<!--    opacity: 1;-->
-<!--    transform: translateY(0) scale(1);-->
-<!--  }-->
-<!--}-->
-
-<!--/* 自定义搜索框阴影 */-->
-<!--input:focus {-->
-<!--  box-shadow: 0 4px 20px -5px rgba(59, 130, 246, 0.15);-->
-<!--}-->
-
-<!--@keyframes progress-loading {-->
-<!--  0% {-->
-<!--    transform: translateX(-100%);-->
-<!--  }-->
-<!--  50% {-->
-<!--    transform: translateX(-30%);-->
-<!--  }-->
-<!--  100% {-->
-<!--    transform: translateX(100%);-->
-<!--  }-->
-<!--}-->
-
-<!--.animate-progress-loading {-->
-<!--  width: 100%;-->
-<!--  animation: progress-loading 1.5s infinite ease-in-out;-->
-<!--}-->
-<!--</style>-->
